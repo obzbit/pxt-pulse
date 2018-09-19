@@ -3,7 +3,7 @@
     "dependencies": {
         "core": "*"
     },
-    "description": "Simple stepcounter functions for the micro:bit",
+    "description": "Simple pulse calculation functions for the micro:bit, to be used with openpulse.com amped sensor",
     "files": [
         "README.md",
         "pulse.ts"
