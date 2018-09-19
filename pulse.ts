@@ -13,26 +13,23 @@ namespace amped {
     let rate: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
     let inputPin: AnalogPin = AnalogPin.P0
-    let QS: boolean = false
-    let BPM = 5
-    let IBI = 600                                     // InterBeat Interval, ms
+    let QS: boolean = false                             // QS => 'Quantified Self'.  It means we saw a beat.
+    let BPM = 5                                         // Beats Per Minute
+    let IBI = 600                                       // InterBeat Interval, ms
     let pulse = false
     let sampleCounter: number = 0
     let lastBeatTime: number = 0
     let Peak: number = 512
     let Trough: number = 512
-    let threshSetting: number = 550
-    let thresh: number = threshSetting
-    let amp = 100 // amplitude is 1/10 of input range.  May alter for 3.3V
-    let firstBeat = true  // looking for the first beat
-    let secondBeat = false // not yet looking for the second beat in a row
-    let signal: number = 0
-
-
-    let fadeLevel = 0;     // graphing up to 25, but we're dark
+    let threshSetting: number = 550                     // This is a fallback number that we never change
+    let thresh: number = threshSetting                  // This number, we do change, but it starts at the fallback position
+    let amp:number = 100                                // amplitude is 1/10 of input range.  This might not be right, but that's fine
+    let firstBeat: boolean = true                       // Are we currently looking for the first beat?
+    let secondBeat: boolean = false                     // We're not yet looking for the second beat in a row, but we will be.
+    let signal: number = 0                              // This is what we use to store what we have just measured
 
     //% block
-    export function getSampleInterval() {
+    export function getSampleInterval() {               // We don't really need to show this to anyone, but it can be useful.
         return sampleIntervalMS
     }
 
@@ -46,7 +43,7 @@ namespace amped {
     }
 
     //% block
-    export function getBPM() {
+    export function getBPM() {                          // This is one we *do* need to show to anyone who asks.
         return BPM
     }
 
@@ -58,7 +55,7 @@ namespace amped {
         return amp
     }
 
-    function getLastBeatTime() {
+    function getLastBeatTime() {                        // We're not interested in the literal time, just how long it has been.
         return lastBeatTime
     }
 
@@ -73,8 +70,7 @@ namespace amped {
     }
 
     //% block
-    export function readNextSample() {
-        // assume that reading is atomic, perfect, complete, and does not get in the way of other things
+    export function readNextSample() {                  // The signal should start at about 500, but /might/ not.  The commented line is the other option
         //signal = mapPinToSample(pins.analogReadPin(inputPin))
         signal = pins.analogReadPin(inputPin)
     }
@@ -87,18 +83,18 @@ namespace amped {
     //% block
     export function processLatestSample() {
         sampleCounter += sampleIntervalMS
-        let N = sampleCounter - lastBeatTime          // N is a time interval
+        let N = sampleCounter - lastBeatTime            // N is a time interval
 
         // here we can fade the graph in/out if we want.
 
         // find the peak/trough of the pulse wave.
-        if (signal < thresh && N > (IBI / 5) * 3) {      // avoid double beats by waiting 3/5 of time since last
+        if (signal < thresh && N > (IBI / 5) * 3) {     // avoid double beats by waiting 3/5 of time since last
             if (signal < Trough) {
-                Trough = signal                             // finding the bottom of the trough
+                Trough = signal                         // finding the bottom of the trough
             }
         }
         if (signal > thresh && signal > Peak) {
-            Peak = signal                                 // keep track of the highest point in the wave
+            Peak = signal                               // keep track of the highest point in the wave
         }
 
         if (N > 250) {
@@ -108,9 +104,9 @@ namespace amped {
                 lastBeatTime = sampleCounter
 
                 if (secondBeat) {
-                    secondBeat = false                      // We are no longer looking for the second beat
+                    secondBeat = false                  // We are no longer looking for the second beat
                     for (let i = 0; i < 10; i++) {
-                        rate[i] = IBI                       // Seed the running total to take a quick stab at the BPM
+                        rate[i] = IBI                   // Seed the running total to take a quick stab at the BPM
                     }
                 }
 
@@ -118,7 +114,7 @@ namespace amped {
                     firstBeat = false
                     secondBeat = true
                     // We can't yet use IBI to seed the running total, but we can check again for the second beat
-                    return   // bug out for the moment...
+                    return   // bug out for the moment, so we don't accidentally continue downwards
                 }
 
                 let runningTotal: number = 0
@@ -133,23 +129,22 @@ namespace amped {
                 BPM = Math.round(60000 / runningTotal)             // 60,000ms = 60secs
                 QS = true                               // Quantified Self (detected a beat!)
 
-                // if we were going to use LEDs we could graph them here
             }
         }
 
-        if (signal < thresh && pulse == true) {  // values are going down, so the beat is over
+        if (signal < thresh && pulse == true) {         // values are going down, so the beat is over
             pulse = false
             amp = Peak - Trough
-            thresh = (amp / 2) + Trough           // this gives us a better idea of amplitude - how big the pulsebeat is
+            thresh = (amp / 2) + Trough                 // this gives us a better idea of amplitude - how big the pulsebeat is
             Peak = thresh
             Trough = thresh
         }
-        if (N > 2500) {                             // 2.5 seconds without a beat means we need to reset
+        if (N > 2500) {                                 // 2.5 seconds without a beat means we need to reset
             thresh = threshSetting
             Peak = 512
             Trough = 512
             lastBeatTime = sampleCounter
-            firstBeat = true                        // look once more for the first beat
+            firstBeat = true                            // look once more for the first beat
             secondBeat = false
             QS = false
             BPM = 0
