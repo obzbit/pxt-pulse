@@ -1,0 +1,11 @@
+{
+    "name": "pulse",
+    "dependencies": {
+        "core": "*"
+    },
+    "description": "Simple stepcounter functions for the micro:bit",
+    "files": [
+        "README.md",
+        "pulse.ts"
+    ]
+}
