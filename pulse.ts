@@ -158,6 +158,11 @@ namespace amped {
 
 }
 
+/*
+*  Below this point are experimental pulse-finders.  They are currently here for interest, and represent other possible ways.
+*  They are unlikely to work without some extra love.
+*/
+
 // weight=50 color=#442211 icon="" block="DOT Pulse A"
 namespace avPulse {
     /**
