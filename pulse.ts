@@ -1,353 +1,459 @@
 /**
+sampleLengthMS
  * This code is created for the Pulse Sensor Amped open platform and based on the code they kindly made available
  */
 
 /**
  * Custom blocks
  */
-//% weight=60 color=#444A84 icon="\uf051" block="DOT Pulse"
-namespace amped {
 
-    let sampleIntervalMS = 10
+//% weight=58 color=#00004c icon="\uf118" block="DOT Pulse"
+//% groups=['1: Core Blocks', '2: Extension Blocks', '3: Useful Variables']
 
-    let rate: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+namespace dotPulse {
 
+    let sampleIntervalMS = 20
+
+    let rate: number[] = []
+    let sampleArray: number[] = []
+    let lastBPMSamples: number[] = []       // EXPECTED BY checkPulseLevel()
+    let averageFiller: number = 500         // A clean number to fill in average values
+
+    let sampleLengthMS: number = 2000                           // 2 seconds is the norm, but should not be relied on.
+    let BPMLength = sampleLengthMS / sampleIntervalMS
+    let rateLength = sampleLengthMS / sampleIntervalMS
+
+    function initialSeeding() {
+        // 2 seconds of data required
+        let samples: number = sampleLengthMS / sampleIntervalMS
+        for (let i: number = 0; i < samples; i++) {
+            sampleArray.push(averageFiller)
+            lastBPMSamples.push(0)
+        }
+        for (let i: number = 0; i < 10; i++) {
+            rate.push(0)
+        }
+    }
+
+    initialSeeding()
+
+    // amped pulse calculation
     let inputPin: AnalogPin = AnalogPin.P0
-    let QS: boolean = false                             // QS => 'Quantified Self'.  It means we saw a beat.
-    let BPM = 5                                         // Beats Per Minute
-    let IBI = 600                                       // InterBeat Interval, ms
+    let BPM = 0
+    let IBI = 600                                           // InterBeat Interval, ms
     let pulse = false
-    let sampleCounter: number = 0
-    let lastBeatTime: number = 0
-    let Peak: number = 512
-    let Trough: number = 512
-    let threshSetting: number = 550                     // This is a fallback number that we never change
-    let thresh: number = threshSetting                  // This number, we do change, but it starts at the fallback position
-    let amp:number = 100                                // amplitude is 1/10 of input range.  This might not be right, but that's fine
-    let firstBeat: boolean = true                       // Are we currently looking for the first beat?
-    let secondBeat: boolean = false                     // We're not yet looking for the second beat in a row, but we will be.
-    let signal: number = 0                              // This is what we use to store what we have just measured
+    let lastBeatTime: number = input.runningTime()
+    let Peak: number = 0
+    let Trough: number = 1023
+    let averageSignal = averageFiller
+    let triggerOffset: number = 50                          // stays up above average this way.
+    let firstBeat = true  // looking for the first beat
+    let secondBeat = false // not yet looking for the second beat in a row
+    let signal: number = 0
+    let rising: boolean = false
+    let rateTotal: number = 0                           // tracks time taken for IBI
+    let runningTotal: number = 0                        // } We use these to track if we are rising or falling
+    let lastTotal: number = 0                           // }
+
+    function getBPMSamples() {
+        return lastBPMSamples
+    }
+
+    /**
+    * view pulse on LEDs as it happens
+    * @param value eg: 5 
+    */
+    //% block="view pulse on LEDs for $value seconds"
+    //% value.min=1 value.max=15
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    export function viewPulseFor(value: number) {
+        let time = input.runningTime()
+        while (input.runningTime() <= time + 1000 * value) {
+            led.plotBarGraph(
+                pins.analogReadPin(AnalogPin.P0),
+                1023
+            )
+            basic.pause(100)
+        }
+        basic.showLeds(`
+        . . # . .
+        . # # . .
+        # # # . #
+        . . # # .
+        . . # . .
+        `)
+    }
+    /**
+    * process your pulse and record it on the micro:bit
+    */
+    //% block="process pulse"
+    //% blockGap=16
+    //% group='1: Core Blocks'
+    export function processPulse() {
+        for (let i = 0; i < getSampleLength() / getSampleInterval(); i++) {
+            readNextSample()
+            processLatestSample()
+            basic.pause(getSampleInterval())
+        }
+    }
+
+
+    //% block="set input pin to $pin"
+    //% advanced=true
+    //% group='1: Core Blocks'
+    export function setPinNumber(pin: AnalogPin) {
+        inputPin = pin
+    }
+
+
+    /**
+     * set your target for time spent in high or moderate activity
+     * @param value eg: 100
+     */
+    //% block='set activity target to $value'
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    export function setActivityTarget(value: number) {
+        activityTarget = value
+    }
+
+    /**
+     * use this to start at a number that is not 0
+     * @param value eg: 20
+     */
+    //% block='set activity points to $value'
+    //% group='2: Extension Blocks'
+    //% blockGap=16
+    export function setActivityPoints(value: number) {
+        totalActivityPoints = (value * 30)
+    }
+
+    /**
+    * a measure of sensitivity when looking at the pulse
+    * @param value eg: 30
+    */
+    //% block="set sensitivity to $value"
+    //% advanced=true
+    //% value.min=0 value.max=50
+    //% group='1: Core Blocks'
+    export function setTriggerOffset(value: number) {
+        triggerOffset = 50 - value
+    }
+
+    function getAverageSignal(): number {
+        return averageSignal
+    }
 
     //% block
-    export function getSampleInterval() {               // We don't really need to show this to anyone, but it can be useful.
-        return sampleIntervalMS
+    //% advanced=true
+    export function setSampleInterval(value: number) {
+        sampleIntervalMS = value
     }
 
-    function mapPinToSample(value: number) {
-        return pins.map(value, 500, 1023, 0, 1023)
+    /**
+       * a measure of sensitivity when looking at the pulse
+       */
+    //% block="trigger level"
+    //% advanced=true
+    //% blockGap=6
+    export function getTriggerLevel() {
+        return triggerOffset + averageSignal
     }
 
-    //% block="live sample"
-    export function getLatestSample() {
-        return signal
+    //% block="current value"
+    //% advanced=true
+    //% blockGap=6
+    export function getRawSample() {
+        return sampleArray[sampleArray.length - 1]
     }
 
-    //% block
-    export function getBPM() {                          // This is one we *do* need to show to anyone who asks.
-        return BPM
-    }
 
-    function getIBI() {
+
+    /**
+    * show Inter-Beat Interval
+    */
+    //% block="Inter-Beat Interval"
+    //% advanced=true
+    //% blockGap=6
+    export function getIBI() {
         return IBI
     }
 
-    function getPulseAmplitude() {
-        return amp
-    }
-
-    function getLastBeatTime() {                        // We're not interested in the literal time, just how long it has been.
+    function getLastBeatTime() {
         return lastBeatTime
     }
 
-    function sawStart() {
-        let started: boolean = QS
-        QS = false
-        return started
+    //% block="sample interval (ms)"
+    //% advanced=true
+    //% blockGap=6
+    export function getSampleInterval() {
+        return sampleIntervalMS
     }
 
-    function isInsideBeat() {
-        return pulse
+    /**
+     * sample length in MS
+     */
+    //% block="sample length (ms)"
+    //% advanced=true
+    //% blockGap=16
+    export function getSampleLength() {
+        return sampleLengthMS
     }
 
-    //% block
-    export function readNextSample() {                  // The signal should start at about 500, but /might/ not.  The commented line is the other option
-        //signal = mapPinToSample(pins.analogReadPin(inputPin))
-        signal = pins.analogReadPin(inputPin)
+    function findAverageSignal(newSample: number, discard: number) {
+        averageSignal += Math.round(newSample / sampleArray.length)
+        averageSignal -= Math.round(discard / sampleArray.length)
     }
 
-    //% block
-    export function getSampleCounter() {
-        return sampleCounter
+
+    function newPulse() {
+        IBI = input.runningTime() - lastBeatTime
+        lastBeatTime = input.runningTime()
+        rateTotal = 0
+        rate[9] = IBI
+        for (let i: number = 0; i < 9; i++) {
+            rate[i] = rate[i + 1]
+            rateTotal += rate[i]
+        }
+        rateTotal += rate[9]
+        rateTotal /= 10                                 // this gives us an average, so we avoid spikes
+        BPM = Math.round(60000 / rateTotal)             // 60,000ms=60secs
+        lastBPMSamples.push(BPM)
+        lastBPMSamples.shift()
     }
 
-    //% block
+    function resetBeat() {
+        Peak = 0
+        Trough = 1023
+        firstBeat = true
+        secondBeat = false
+        lastBeatTime = input.runningTime()
+        BPM = 0
+        IBI = 600
+    }
+
+    function getLastSample() {
+        return sampleArray[sampleArray.length - 1]
+    }
+
+    function isValidBeatTime(): boolean {
+        if (lastBeatTime + 250 < input.runningTime()) {  // If your heart is beating more than 4 times a second, you have a different problem
+            return true
+        }
+        return false
+    }
+
+    /**
+    * takes a reading from the pin connected to the pulse meter
+    */
+    //% block="take pulse sample"
+    //% blockGap=6
+    //% group="2: Extension Blocks""
+    export function readNextSample() {
+        // assume that reading is atomic, perfect, complete, and does not get in the way of other things
+
+        let newSample: number = pins.analogReadPin(inputPin)
+        sampleArray.push(newSample)
+        let discard: number = sampleArray.shift()
+        findAverageSignal(newSample, discard)
+    }
+
+
+    /**
+     * finds if we are in a pulse already, or have just started one
+     */
+    //% block="process latest sample"
+    //% blockGap=16
+    //% group='2: Extension Blocks'
     export function processLatestSample() {
-        sampleCounter += sampleIntervalMS
-        let N = sampleCounter - lastBeatTime            // N is a time interval
 
-        // here we can fade the graph in/out if we want.
-
-        // find the peak/trough of the pulse wave.
-        if (signal < thresh && N > (IBI / 5) * 3) {     // avoid double beats by waiting 3/5 of time since last
-            if (signal < Trough) {
-                Trough = signal                         // finding the bottom of the trough
-            }
-        }
-        if (signal > thresh && signal > Peak) {
-            Peak = signal                               // keep track of the highest point in the wave
+        // checks if the peak in a new sample is really the start of a beat
+        if (sampleArray[sampleArray.length - 1] > (sampleArray[sampleArray.length - 2]) && (getLastSample() > getTriggerLevel())) {
+            // we are rising.
+            rising = true
         }
 
-        if (N > 250) {
-            if ((signal > thresh) && (pulse == false) && (N > (IBI / 5) * 3)) {
-                pulse = true
-                IBI = sampleCounter - lastBeatTime
-                lastBeatTime = sampleCounter
-
-                if (secondBeat) {
-                    secondBeat = false                  // We are no longer looking for the second beat
-                    for (let i = 0; i < 10; i++) {
-                        rate[i] = IBI                   // Seed the running total to take a quick stab at the BPM
-                    }
+        else if (rising == true && isValidBeatTime() && (getLastSample() < getTriggerLevel()) && sampleArray[sampleArray.length - 1] < sampleArray[sampleArray.length - 2]) {
+            rising = false
+            newPulse()                                  // sets pulse to true, sets IBI to N, moves lastBeatTime to input.runningTime
+            if (secondBeat) {
+                secondBeat = false                      // We are no longer looking for the second beat
+                for (let i = 0; i < 10; i++) {
+                    rate[i] = IBI                       // Seed the running total to take a quick stab at the BPM
                 }
+            }
 
-                if (firstBeat) {
-                    firstBeat = false
-                    secondBeat = true
-                    // We can't yet use IBI to seed the running total, but we can check again for the second beat
-                    return   // bug out for the moment, so we don't accidentally continue downwards
-                }
+            if (firstBeat) {
+                firstBeat = false
+                secondBeat = true
+                // We can't yet use IBI to seed the running total, but we can check again for the second beat
+                return   // bug out for the moment...
+            }
 
-                let runningTotal: number = 0
-                for (let i = 0; i < 9; i++) {
-                    rate[i] = rate[i + 1]               // we could do this with shift, but we'd still have to do the next line...
-                    runningTotal += rate[i]
-                }
+        }
+        if (input.runningTime() - lastBeatTime > 2000) {
+            resetBeat()
+        }
+    }
 
-                rate[9] = IBI
-                runningTotal += rate[9]
-                runningTotal /= 10                      // this gives us an average, so we avoid spikes
-                BPM = Math.round(60000 / runningTotal)             // 60,000ms = 60secs
-                QS = true                               // Quantified Self (detected a beat!)
+    export function integerMap(value: number, inputLow: number, inputHigh: number, outputLow: number, outputHigh: number): number {
+        return Math.round((value - inputLow) * (outputHigh - outputLow) / (inputHigh - inputLow) + outputLow)
+    }
 
+    /**
+    * helper function for mapping calculation brings any number to 25
+    * this means we can use the LEDs to graph nicely
+    * @param value describe value here eg: 21
+    * @param target describe target here eg: 100
+    */
+
+    export function mapTo25(value: number, target: number): number {
+        return integerMap(value, 0, target, 0, 25) - 1
+    }
+
+    let activityPoints: number = 0
+    let activityTarget: number = 100
+    let moderatePulseLowBound: number = 0
+    let moderateVigorousBoundary: number = 0
+    let vigorousPulseHighBound: number = 0
+    let maximumPulse: number = 0
+    let heartRateReserve: number = 0
+    let totalActivityPoints: number = 0
+
+    /**
+     * @param age eg:12
+     * @param restRate eg:70
+     */
+    //% block="calculate target zone using age:$age and resting Heart Rate: $restRate"
+    //% group='1: Core Blocks'
+
+    export function calcModVig(age: number, restRate: number) {
+        maximumPulse = 220 - age
+        heartRateReserve = maximumPulse - restRate
+        moderatePulseLowBound = (heartRateReserve / 2) + restRate
+        moderateVigorousBoundary = Math.round((heartRateReserve * .7) + restRate)
+        vigorousPulseHighBound = Math.round((heartRateReserve * .85) + restRate)
+
+    }
+
+    /**
+     * checks the most recent BPM calculation for what sort of exercise it implies
+     */
+    //% block="calculate activity points"
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    export function calcActivityPoints() {
+        if (checkPulseLevel() == 4) {
+            totalActivityPoints += 4
+        } else if (checkPulseLevel() == 2) {
+            totalActivityPoints += 2
+        }
+    }
+
+
+    /**
+     * activity in minutes of moderate or half minutes of vigorous exercise
+     */
+    //% block='activity points'
+    //% blockGap=6
+    //% group="1: Core Blocks"
+    export function getActivityPoints() {
+        return Math.round(totalActivityPoints / 30)       // We use 30 because we have a 2-second sample period.
+    }
+
+    /**
+     * activity target, in minutes of vigorous exercise
+     * moderate exercise will count for half
+     */
+    //% block="activity target"
+    //% blockGap=6
+    //% group="1: Core Blocks"
+    export function getActivityTarget() {
+        return activityTarget
+    }
+
+
+    /**
+     * gets Beats Per Minute, which we calculate as we go along
+     */
+    //% block="BPM"
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    export function getBPM() {
+        return BPM
+    }
+
+
+    /**
+    * graphs 'number' out of 'target' on the LED screen
+    * @param value describe value here, eg: 5
+    * @param target describe target here, eg: 100
+    */
+    //% block="track $value out of $target"
+    //% value.min=0 target.min=1
+    export function graphOnScreen(value: number, target: number): void {
+        if (value > target) {
+            value = target
+        }
+        let screenValue = mapTo25(value, target)
+        if (screenValue == 0) {
+            basic.clearScreen()
+        } else {
+            basic.clearScreen()
+            basic.pause(500)
+            for (let index = 0; index <= screenValue; index++) {
+                led.plot(index % 5, 4 - (Math.floor(index / 5)))
             }
         }
-
-        if (signal < thresh && pulse == true) {         // values are going down, so the beat is over
-            pulse = false
-            amp = Peak - Trough
-            thresh = (amp / 2) + Trough                 // this gives us a better idea of amplitude - how big the pulsebeat is
-            Peak = thresh
-            Trough = thresh
-        }
-        if (N > 2500) {                                 // 2.5 seconds without a beat means we need to reset
-            thresh = threshSetting
-            Peak = 512
-            Trough = 512
-            lastBeatTime = sampleCounter
-            firstBeat = true                            // look once more for the first beat
-            secondBeat = false
-            QS = false
-            BPM = 0
-            IBI = 600
-            pulse = false
-            amp = 100
-        }
     }
 
 
-
-}
-
-/*
-*  Below this point are experimental pulse-finders.  They are currently here for interest, and represent other possible ways.
-*  They are unlikely to work without some extra love.
-*/
-
-// weight=50 color=#442211 icon="" block="DOT Pulse A"
-namespace avPulse {
-    /**
-     * we'll need a running total holder, and then we need to find out if the average is going up or down,
-     * and if it has been going up or down recently
-     * 
-     * three 'up' in a row followed by three 'down' in a row should indicate that we've had a peak.
-     * it's already equivalent to an average, so we probably don't need to got with an arbitrary majority
-     * 
-     * total goes up, we push to our array saying 'up' and total goes down we push to our array saying down.  No change, we push 0.
-     * 
-     * So we're working with 1, 0, -1.  We're particularly looking for 3 up, and then a flag
-     * and then 3 down within 4 ticks, because we might hit a 0.
-     * 
-     * We could also just set and clear flags for a number over 500, and see if that works.
-     * 
-     */
-    let runningTotal: number = 0
-    let runningNumbers: number[] = [0, 0, 0]
-    let recentNews: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    let entirelyArbitraryThreshold: number = 750
-    let eAT: number = entirelyArbitraryThreshold
-    let otherThreshold: number = eAT - 20                  // lower level for hysteresis management
-    let pulseCount = 0
-
-    let upwards: boolean = false
-
-
-
-    //% block
-    export function takeSample(): void {
-        runningNumbers.push(pins.analogReadPin(AnalogPin.P0))
+    function getMPLB() {
+        return moderatePulseLowBound
     }
 
-    //% block
-    export function calculateRunningTotal(): void {
-        let currentTotal: number = runningTotal
-        runningTotal -= runningNumbers.pop()
-        runningTotal += runningNumbers[-1]
-        if (runningTotal > currentTotal) {
-            recentNews.push(1)
-        }
-        else if (runningTotal < currentTotal) {
-            recentNews.push(-1)
-        }
-        else { recentNews.push(0) }
-        recentNews.shift()
-    }
-    //% block
-    export function checkDirection(): void {
-        if (recentNews[0] == 1 && recentNews[1] == 1 && recentNews[2] == 1 && runningTotal >= eAT * 3) {
-            // set flag
-            upwards = true
-        }
-        if (recentNews[0] == -1 && recentNews[1] == -1 && recentNews[2] == -1 && runningTotal < (otherThreshold * 3) && upwards == true) {
-
-            // downside of peak.  Unset flag, record beat.  Clear state.
-            upwards = false
-            pulseCount++
-        }
+    function getMVB() {
+        return moderateVigorousBoundary
     }
 
-    //% block expose Pulse Count
-    export function getPulseCount(): number {
-        return pulseCount
+    function getVPHB() {
+        return vigorousPulseHighBound
     }
-}
 
+    function getMPR() {
+        return maximumPulse
+    }
 
-// weight=50 color=#0fbc11 icon="" block="DOT Pulse B"
-namespace dotPulse {
-
-    let sampleRate: number = 10                  // per second
-    let values: number[] = []
-    let peaks: number[] = []
-    let sampleIndex: number = 0
-    let currentPeaks: number = 5
-    let uncleanPeaks: number = 0
-    let interval: number = 1000 / sampleRate        // ms
-
-    /**
-     * peak finder; returns but does not clean data
-     * includes plateaus as multiple peaks
-     * @param array, eg: values
-     */
-    //% block
-    export function findPeaks(): void {
-        let array: number[] = values
-        for (let i: number = 1; i < array.length - 1; ++i) {
-            if (array[(i - 1)] <= array[i] && array[i] >= array[(i + 1)]) {
-                peaks[i] = 1
-            }
-            else { peaks[i] = 0 }
-        }
+    function getHRR() {
+        return heartRateReserve
     }
 
     /**
-     * Counts peaks, judging them for validity
-     * @param array describe parameter here, eg: peaks
+     * returns a 1 for light, 2 for moderate and a 4 for vigorous exercise.  -1 means there is an error
      */
-    //% block
-    export function countPeaks(): void {
-        let array: number[] = peaks
-        let count: number = 0
-        //reduce small clusters to individual 1s by only counting the last
-        for (let i: number = 0; i < sampleRate - 1; i++) {
-            if (array[i] == 1 && array[i + 1] == 0) {
-                count++
-            }
+    // % block='current pulse level'
+    // % advanced=true
+    function checkPulseLevel(): number {
+        // requires enough pulse values in pulse.whatever to use for a historical average.
+        // returns a -1, 1, 2 or 4.
+        let samples: number[] = getBPMSamples()
+        let n: number = 0
+        let m: number = samples.length
+
+        for (let i: number = 0; i < samples.length; i++) {
+            n += samples[i]
         }
-        currentPeaks += count
-        //return count
-    }
-
-    /** 
-     * exposes values
-     */
-    //% block
-    export function returnValues() {
-        return values
-    }
-
-    /**
-     * exposes peaks
-     */
-    //% block
-    export function returnPeaks() {
-        return peaks
-    }
-
-    /**
-     * returns uncleanPeaks
-     */
-    //% block
-    export function returnUncleanPeaks() {
-        return uncleanPeaks
-    }
-
-
-    /**
-     * returns currentPeaks 
-     */
-    //% block
-    export function getCurrentPeaks(): number {
-        return currentPeaks
-    }
-
-    /**
-     * returns sampleRate
-     */
-    //% block
-    export function getSampleRate(): number {
-        return sampleRate
-    }
-
-    /**
-     * returns interval
-     */
-    //% block
-    export function getInterval(): number {
-        return interval
-    }
-
-    //% block
-    export function takeSample(): void {
-        values[sampleIndex] = pins.analogReadPin(AnalogPin.P0)
-        serial.writeNumber(values[sampleIndex])
-        sampleIndex++
-        if (sampleIndex > peaks.length) {
-            sampleIndex = 0
+        n = Math.round(n / m)
+        if (n <= vigorousPulseHighBound && n > moderateVigorousBoundary) {       // high
+            return 4
         }
-    }
-
-    /**
-     * samples at 1000 sampleRate ms
-     */
-    //% block
-    export function initiateCounter(): void {
-        // Array.fill does not seem to exist here, so we'll fill it as a loop
-        for (let i: number = 0; i < sampleRate; i++) {
-            peaks.push(0)
-            values.push(0)
+        else if (n <= moderateVigorousBoundary && n > moderatePulseLowBound) {     // moderate
+            return 2
         }
+        else if (n <= moderatePulseLowBound) {        // light
+            return 1
+        }
+        else return -1                          // We're too high, so error out
     }
-
-
-
 }
