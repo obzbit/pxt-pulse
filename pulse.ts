@@ -7,7 +7,7 @@ sampleLengthMS
  * Custom blocks
  */
 
-//% weight=58 color=#00004c icon="\uf118" block="DOT Pulse"
+//% color=#00004c icon="\uf21e" block="Pulse"
 //% groups=['1: Core Blocks', '2: Extension Blocks', '3: Useful Variables']
 
 namespace dotPulse {
@@ -67,6 +67,7 @@ namespace dotPulse {
     //% value.min=1 value.max=15
     //% blockGap=6
     //% group='1: Core Blocks'
+    //% advanced=true
     export function viewPulseFor(value: number) {
         let time = input.runningTime()
         while (input.runningTime() <= time + 1000 * value) {
@@ -84,28 +85,35 @@ namespace dotPulse {
         . . # . .
         `)
     }
+
     /**
-    * process your pulse and record it on the micro:bit
+    * a measure of sensitivity when looking at the pulse
+    * @param value eg: 30
     */
-    //% block="process pulse"
-    //% blockGap=16
+    //% block="set input pin to $pin | sensitivity to $value "
     //% group='1: Core Blocks'
-    export function processPulse() {
+    //% value.min=0 value.max=50
+    //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P1
+    //% weight=100
+    export function setPinNumber(pin: AnalogPin, value: number) {
+        triggerOffset = 50 - value
+        inputPin = pin
+    }
+
+    /**
+     * gets Beats Per Minute, which we calculate as we go along
+     */
+    //% block="BPM"
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    export function getBPM() {
         for (let i = 0; i < getSampleLength() / getSampleInterval(); i++) {
             readNextSample()
             processLatestSample()
             basic.pause(getSampleInterval())
         }
+        return BPM
     }
-
-
-    //% block="set input pin to $pin"
-    //% advanced=true
-    //% group='1: Core Blocks'
-    export function setPinNumber(pin: AnalogPin) {
-        inputPin = pin
-    }
-
 
     /**
      * set your target for time spent in high or moderate activity
@@ -114,6 +122,7 @@ namespace dotPulse {
     //% block='set activity target to $value'
     //% blockGap=6
     //% group='1: Core Blocks'
+    //% advanced=true
     export function setActivityTarget(value: number) {
         activityTarget = value
     }
@@ -125,20 +134,9 @@ namespace dotPulse {
     //% block='set activity points to $value'
     //% group='2: Extension Blocks'
     //% blockGap=16
+    //% advanced=true
     export function setActivityPoints(value: number) {
         totalActivityPoints = (value * 30)
-    }
-
-    /**
-    * a measure of sensitivity when looking at the pulse
-    * @param value eg: 30
-    */
-    //% block="set sensitivity to $value"
-    //% advanced=true
-    //% value.min=0 value.max=50
-    //% group='1: Core Blocks'
-    export function setTriggerOffset(value: number) {
-        triggerOffset = 50 - value
     }
 
     function getAverageSignal(): number {
@@ -250,6 +248,7 @@ namespace dotPulse {
     //% block="take pulse sample"
     //% blockGap=6
     //% group="2: Extension Blocks""
+    //% advanced=true
     export function readNextSample() {
         // assume that reading is atomic, perfect, complete, and does not get in the way of other things
 
@@ -266,6 +265,7 @@ namespace dotPulse {
     //% block="process latest sample"
     //% blockGap=16
     //% group='2: Extension Blocks'
+    //% advanced=true
     export function processLatestSample() {
 
         // checks if the peak in a new sample is really the start of a beat
@@ -327,7 +327,7 @@ namespace dotPulse {
      */
     //% block="calculate target zone using age:$age and resting Heart Rate: $restRate"
     //% group='1: Core Blocks'
-
+    //% advanced=true
     export function calcModVig(age: number, restRate: number) {
         maximumPulse = 220 - age
         heartRateReserve = maximumPulse - restRate
@@ -343,6 +343,7 @@ namespace dotPulse {
     //% block="calculate activity points"
     //% blockGap=6
     //% group='1: Core Blocks'
+    //% advanced=true
     export function calcActivityPoints() {
         if (checkPulseLevel() == 4) {
             totalActivityPoints += 4
@@ -358,6 +359,7 @@ namespace dotPulse {
     //% block='activity points'
     //% blockGap=6
     //% group="1: Core Blocks"
+    //% advanced=true
     export function getActivityPoints() {
         return Math.round(totalActivityPoints / 30)       // We use 30 because we have a 2-second sample period.
     }
@@ -369,20 +371,12 @@ namespace dotPulse {
     //% block="activity target"
     //% blockGap=6
     //% group="1: Core Blocks"
+    //% advanced=true
     export function getActivityTarget() {
         return activityTarget
     }
 
 
-    /**
-     * gets Beats Per Minute, which we calculate as we go along
-     */
-    //% block="BPM"
-    //% blockGap=6
-    //% group='1: Core Blocks'
-    export function getBPM() {
-        return BPM
-    }
 
 
     /**
@@ -392,6 +386,7 @@ namespace dotPulse {
     */
     //% block="track $value out of $target"
     //% value.min=0 target.min=1
+    //% advanced=true
     export function graphOnScreen(value: number, target: number): void {
         if (value > target) {
             value = target
