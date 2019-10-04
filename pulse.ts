@@ -88,7 +88,7 @@ namespace dotPulse {
 
     /**
     * a measure of sensitivity when looking at the pulse
-    * @param value eg: 30
+    * @param value eg: 15
     */
     //% block="set input pin to $pin | sensitivity to $value "
     //% group='1: Core Blocks'
