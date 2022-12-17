@@ -75,7 +75,7 @@ namespace dotPulse {
     //% value.min=0 value.max=50
     //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P0
     //% weight=100
-    export function setPinNumber(pin: AnalogPin, value: number) {
+    export function setPinNumberWithSensitivity(pin: AnalogPin, value: number) {
         triggerOffset = 50 - value
         inputPin = pin
     }
