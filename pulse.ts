@@ -67,11 +67,12 @@ namespace pulseSensor {
                 spikeCount = spikeCount + 1
                 previousSpike = newTime
             }
+            led.plotBarGraph(newSample,1023)
             previousSample = newSample
             basic.pause(50)
             newTime = input.runningTime()
         }
-        return Math.round(60 * (spikeCount-1) / totalInterval)
+        return Math.round(60000 * (spikeCount-1) / totalInterval)
     }
 
     /**
@@ -99,12 +100,13 @@ namespace pulseSensor {
                 peakCount = peakCount + 1
                 previousPeak = newTime
             }
+	    led.plotBarGraph(newSample,1023)
             previousSample2 = previousSample
             previousSample = newSample
             basic.pause(50)
             newTime = input.runningTime()
         }
-        return Math.round(60 * (peakCount-1) / totalInterval)
+        return Math.round(60000 * (peakCount-1) / totalInterval)
     }
 
 
