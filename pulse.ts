@@ -92,7 +92,7 @@ namespace pulseSensor {
         while (newTime <= startTime + 5000) {
             let newSample: number = pins.analogReadPin(inputPin)
             newSample = (previousSample * value + newSample * (100-value)) / 100
-            if (previousSample2 < previousSample && previousSample < newSample) {
+            if (previousSample > previousSample2 && previousSample > newSample) {
                 if (peakCount > 0) {
                     totalInterval = totalInterval + newTime - previousPeak
                 }
