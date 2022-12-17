@@ -1,11 +1,16 @@
 {
     "name": "pulse",
+    "license": "MIT",
     "dependencies": {
         "core": "*"
     },
-    "description": "Simple pulse calculation functions for the micro:bit, to be used with openpulse.com amped sensor. This package also provides an activity calculator to help interpret and record pulse rate.",
+    "description": "Simple pulse calculation functions for the micro:bit, to be used with the Pulse Sensor.",
     "files": [
         "README.md",
         "pulse.ts"
+    ],
+    "public": true,
+    "supportedTargets": [
+        "microbit"
     ]
 }
