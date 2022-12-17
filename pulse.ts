@@ -59,31 +59,51 @@ namespace dotPulse {
         return lastBPMSamples
     }
 
-    //% block="set input pin to $pin"
+    /**
+    * view pulse on LEDs as it happens
+    * @param value eg: 5 
+    */
+    //% block="view pulse on LEDs for $value seconds"
+    //% value.min=1 value.max=15
+    //% blockGap=6
     //% group='1: Core Blocks'
-    export function setPinNumber(pin: AnalogPin) {
-        inputPin = pin
+    //% advanced=true
+    export function viewPulseFor(value: number) {
+        let time = input.runningTime()
+        while (input.runningTime() <= time + 1000 * value) {
+            led.plotBarGraph(
+                pins.analogReadPin(AnalogPin.P0),
+                1023
+            )
+            basic.pause(100)
+        }
+        basic.showLeds(`
+        . . # . .
+        . # # . .
+        # # # . #
+        . . # # .
+        . . # . .
+        `)
     }
-	
+
     /**
     * a measure of sensitivity when looking at the pulse
     * @param value eg: 15
     */
     //% block="set input pin to $pin | sensitivity to $value "
     //% group='1: Core Blocks'
-    //% advanced=true
     //% value.min=0 value.max=50
-    //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P0
+    //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P1
     //% weight=100
-    export function setPinNumberWithSensitivity(pin: AnalogPin, value: number) {
+    export function setPinNumber(pin: AnalogPin, value: number) {
         triggerOffset = 50 - value
         inputPin = pin
     }
 
     /**
-     * (Original) gets Beats Per Minute, which we calculate as we go along
+     * gets Beats Per Minute, which we calculate as we go along
      */
-    //% block="BPM (original)"
+    //% block="BPM"
     //% blockGap=6
     //% group='1: Core Blocks'
     export function getBPM() {
@@ -94,7 +114,6 @@ namespace dotPulse {
         }
         return BPM
     }
-
 
     /**
      * set your target for time spent in high or moderate activity
