@@ -86,7 +86,6 @@ namespace dotPulse {
     //% block="BPM (original)"
     //% blockGap=6
     //% group='1: Core Blocks'
-    //% advanced=true
     export function getBPM() {
         for (let i = 0; i < getSampleLength() / getSampleInterval(); i++) {
             readNextSample()
