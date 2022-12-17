@@ -79,7 +79,6 @@ namespace dotPulse {
     */
     //% block="view pulse on LEDs for $value seconds"
     //% value.min=1 value.max=15
-    //% blockGap=6
     //% group='1: Core Blocks'
     export function viewPulseFor(value: number) {
         let time = input.runningTime()
@@ -105,27 +104,26 @@ namespace dotPulse {
     */
     //% block="BPM with threshold $value"
     //% value.min=0 value.max=1023
-	//% blockGap=6
     //% group='1: Core Blocks'
     export function BPMthreshold(value: number) {
-		let spikeCount = 0
-		let totalInterval = 0
-		let previousSample = 1023
-	    let startTime = input.runningTime()
-		let previousSpike = startTime
+        let spikeCount = 0
+        let totalInterval = 0
+        let previousSample = 1023
+        let startTime = input.runningTime()
+        let previousSpike = startTime
         while (let newTime = input.runningTime() <= startTime + 5000) {
             let newSample: number = pins.analogReadPin(inputPin)
             if (previousSample < value && newSample >= value) {
-				if (spikeCount > 0) {
-					totalInterval = totalInterval + newTime - previousSpike
-				}
-				spikeCount = spikeCount + 1
-				previousSpike = newTime
-			}
-			previousSample = newSample
+                if (spikeCount > 0) {
+                    totalInterval = totalInterval + newTime - previousSpike
+                }
+                spikeCount = spikeCount + 1
+                previousSpike = newTime
+            }
+            previousSample = newSample
             basic.pause(50)
         }
-		return Math.round(60 * (spikeCount-1) / totalInterval)
+        return Math.round(60 * (spikeCount-1) / totalInterval)
     }
 
     /**
@@ -134,31 +132,31 @@ namespace dotPulse {
     */
     //% block="BPM with decaying factor $value"
     //% value.min=0 value.max=100
-	//% blockGap=6
     //% group='1: Core Blocks'
     export function BPMthreshold(value: number) {
-		let peakCount = 0
-		let totalInterval = 0
-		let previousSample = 1023
-		let previousSample2 = 1023
-	    let startTime = input.runningTime()
-		let previousPeak = startTime
+        let peakCount = 0
+        let totalInterval = 0
+        let previousSample = 1023
+        let previousSample2 = 1023
+        let startTime = input.runningTime()
+        let previousPeak = startTime
         while (let newTime = input.runningTime() <= startTime + 5000) {
             let newSample: number = pins.analogReadPin(inputPin)
-			newSample = (previousSample * value + newSample * (100-value)) / 100
+            newSample = (previousSample * value + newSample * (100-value)) / 100
             if (previousSample2 < previousSample && previousSample < newSample) {
-				if (peakCount > 0) {
-					totalInterval = totalInterval + newTime - previousPeak
-				}
-				peakCount = peakCount + 1
-				previousPeak = newTime
-			}
-			previousSample2 = previousSample
-			previousSample = newSample
+                if (peakCount > 0) {
+                    totalInterval = totalInterval + newTime - previousPeak
+                }
+                peakCount = peakCount + 1
+                previousPeak = newTime
+            }
+            previousSample2 = previousSample
+            previousSample = newSample
             basic.pause(50)
         }
-		return Math.round(60 * (peakCount-1) / totalInterval)
+        return Math.round(60 * (peakCount-1) / totalInterval)
     }
+
 
     /**
      * (Original) gets Beats Per Minute, which we calculate as we go along
