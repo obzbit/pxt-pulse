@@ -21,12 +21,12 @@ namespace pulseSensor {
 	
     /**
     * view pulse on LEDs as it happens
-    * @param value eg: 5 
+    * @param value eg: 10 
     */
     //% block="view pulse on LEDs for $value seconds"
-    //% value.min=1 value.max=15
+    //% value.min=1 value.max=20
     //% weight=80
-    export function viewPulseFor(value: number = 5) {
+    export function viewPulseFor(value: number = 10) {
         let time = input.runningTime()
         while (input.runningTime() <= time + 1000 * value) {
             led.plotBarGraph(
@@ -45,7 +45,7 @@ namespace pulseSensor {
     }
 
     /**
-    * gets Beats Per Minute, with readings in 5 seconds
+    * gets Beats Per Minute, with readings in 10 seconds
     * @param value eg: 512
     */
     //% block="BPM with threshold $value"
@@ -58,7 +58,7 @@ namespace pulseSensor {
         let startTime = input.runningTime()
         let previousSpike = startTime
         let newTime = input.runningTime()
-        while (newTime <= startTime + 5000) {
+        while (newTime <= startTime + 10000) {
             let newSample: number = pins.analogReadPin(inputPin)
             if (previousSample < value && newSample >= value) {
                 if (spikeCount > 0) {
@@ -67,7 +67,7 @@ namespace pulseSensor {
                 spikeCount = spikeCount + 1
                 previousSpike = newTime
             }
-            // led.plotBarGraph(newSample,1023)
+            led.plotBarGraph(newSample,1023)
             previousSample = newSample
             basic.pause(50)
             newTime = input.runningTime()
@@ -77,7 +77,7 @@ namespace pulseSensor {
     }
 
     /**
-    * implements a leaky BPM computation, with readings in 5 seconds
+    * implements a leaky BPM computation, with readings in 10 seconds
     * @param value eg: 80
     */
     //% block="BPM with decaying factor $value"
@@ -91,7 +91,7 @@ namespace pulseSensor {
         let startTime = input.runningTime()
         let previousPeak = startTime
         let newTime = input.runningTime()
-        while (newTime <= startTime + 5000) {
+        while (newTime <= startTime + 10000) {
             let newSample: number = pins.analogReadPin(inputPin)
             newSample = (previousSample * value + newSample * (100-value)) / 100
             if (previousSample > previousSample2 && previousSample > newSample) {
@@ -101,7 +101,7 @@ namespace pulseSensor {
                 peakCount = peakCount + 1
                 previousPeak = newTime
             }
-	    // led.plotBarGraph(newSample,1023)
+	    led.plotBarGraph(newSample,1023)
             previousSample2 = previousSample
             previousSample = newSample
             basic.pause(50)
