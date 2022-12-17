@@ -60,33 +60,6 @@ namespace dotPulse {
     }
 
     /**
-    * view pulse on LEDs as it happens
-    * @param value eg: 5 
-    */
-    //% block="view pulse on LEDs for $value seconds"
-    //% value.min=1 value.max=15
-    //% blockGap=6
-    //% group='1: Core Blocks'
-    //% advanced=true
-    export function viewPulseFor(value: number) {
-        let time = input.runningTime()
-        while (input.runningTime() <= time + 1000 * value) {
-            led.plotBarGraph(
-                pins.analogReadPin(AnalogPin.P0),
-                1023
-            )
-            basic.pause(100)
-        }
-        basic.showLeds(`
-        . . # . .
-        . # # . .
-        # # # . #
-        . . # # .
-        . . # . .
-        `)
-    }
-
-    /**
     * a measure of sensitivity when looking at the pulse
     * @param value eg: 15
     */
@@ -101,11 +74,99 @@ namespace dotPulse {
     }
 
     /**
-     * gets Beats Per Minute, which we calculate as we go along
-     */
-    //% block="BPM"
+    * view pulse on LEDs as it happens
+    * @param value eg: 5 
+    */
+    //% block="view pulse on LEDs for $value seconds"
+    //% value.min=1 value.max=15
     //% blockGap=6
     //% group='1: Core Blocks'
+    export function viewPulseFor(value: number) {
+        let time = input.runningTime()
+        while (input.runningTime() <= time + 1000 * value) {
+            led.plotBarGraph(
+                pins.analogReadPin(inputPin),
+                1023
+            )
+            basic.pause(100)
+        }
+        basic.showLeds(`
+        . . # . .
+        . # # . .
+        # # # . #
+        . . # # .
+        . . # . .
+        `)
+    }
+
+    /**
+    * gets Beats Per Minute, with readings in 5 seconds
+    * @param value eg: 512
+    */
+    //% block="BPM with threshold $value"
+    //% value.min=0 value.max=1023
+	//% blockGap=6
+    //% group='1: Core Blocks'
+    export function BPMthreshold(value: number) {
+		let spikeCount = 0
+		let totalInterval = 0
+		let previousSample = 1023
+	    let startTime = input.runningTime()
+		let previousSpike = startTime
+        while (let newTime = input.runningTime() <= startTime + 5000) {
+            let newSample: number = pins.analogReadPin(inputPin)
+            if (previousSample < value && newSample >= value) {
+				if (spikeCount > 0) {
+					totalInterval = totalInterval + newTime - previousSpike
+				}
+				spikeCount = spikeCount + 1
+				previousSpike = newTime
+			}
+			previousSample = newSample
+            basic.pause(50)
+        }
+		return Math.round(60 * (spikeCount-1) / totalInterval)
+    }
+
+    /**
+    * implements a leaky BPM computation, with readings in 5 seconds
+    * @param value eg: 80
+    */
+    //% block="BPM with decaying factor $value"
+    //% value.min=0 value.max=100
+	//% blockGap=6
+    //% group='1: Core Blocks'
+    export function BPMthreshold(value: number) {
+		let peakCount = 0
+		let totalInterval = 0
+		let previousSample = 1023
+		let previousSample2 = 1023
+	    let startTime = input.runningTime()
+		let previousPeak = startTime
+        while (let newTime = input.runningTime() <= startTime + 5000) {
+            let newSample: number = pins.analogReadPin(inputPin)
+			newSample = (previousSample * value + newSample * (100-value)) / 100
+            if (previousSample2 < previousSample && previousSample < newSample) {
+				if (peakCount > 0) {
+					totalInterval = totalInterval + newTime - previousPeak
+				}
+				peakCount = peakCount + 1
+				previousPeak = newTime
+			}
+			previousSample2 = previousSample
+			previousSample = newSample
+            basic.pause(50)
+        }
+		return Math.round(60 * (peakCount-1) / totalInterval)
+    }
+
+    /**
+     * (Original) gets Beats Per Minute, which we calculate as we go along
+     */
+    //% block="BPM (original)"
+    //% blockGap=6
+    //% group='1: Core Blocks'
+    //% advanced=true
     export function getBPM() {
         for (let i = 0; i < getSampleLength() / getSampleInterval(); i++) {
             readNextSample()
@@ -114,6 +175,7 @@ namespace dotPulse {
         }
         return BPM
     }
+
 
     /**
      * set your target for time spent in high or moderate activity
