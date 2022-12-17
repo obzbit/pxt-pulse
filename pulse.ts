@@ -67,7 +67,7 @@ namespace pulseSensor {
                 spikeCount = spikeCount + 1
                 previousSpike = newTime
             }
-            led.plotBarGraph(newSample,1023)
+            // led.plotBarGraph(newSample,1023)
             previousSample = newSample
             basic.pause(50)
             newTime = input.runningTime()
@@ -100,7 +100,7 @@ namespace pulseSensor {
                 peakCount = peakCount + 1
                 previousPeak = newTime
             }
-	    led.plotBarGraph(newSample,1023)
+	    // led.plotBarGraph(newSample,1023)
             previousSample2 = previousSample
             previousSample = newSample
             basic.pause(50)
