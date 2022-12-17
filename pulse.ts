@@ -73,7 +73,7 @@ namespace pulseSensor {
             newTime = input.runningTime()
         }
         basic.pause(100)
-	return Math.round(60000 * (spikeCount-1) / totalInterval)
+	return Math.max(0, Math.round(60000 * (spikeCount-1) / totalInterval))
     }
 
     /**
@@ -108,7 +108,7 @@ namespace pulseSensor {
             newTime = input.runningTime()
         }
         basic.pause(100)
-	return Math.round(60000 * (peakCount-1) / totalInterval)
+	return Math.max(0, Math.round(60000 * (peakCount-1) / totalInterval))
     }
 
 
