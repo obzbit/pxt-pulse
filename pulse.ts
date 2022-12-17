@@ -59,20 +59,39 @@ namespace dotPulse {
         return lastBPMSamples
     }
 
+    //% block="set input pin to $pin"
+    //% group='1: Core Blocks'
+    export function setPinNumber(pin: AnalogPin) {
+        inputPin = pin
+    }
+	
+    /**
+    * a measure of sensitivity when looking at the pulse
+    * @param value eg: 15
+    */
+    //% block="set input pin to $pin | sensitivity to $value "
+    //% group='1: Core Blocks'
+    //% advanced=true
+    //% value.min=0 value.max=50
+    //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P0
+    //% weight=100
+    export function setPinNumberWithSensitivity(pin: AnalogPin, value: number) {
+        triggerOffset = 50 - value
+        inputPin = pin
+    }
+
     /**
     * view pulse on LEDs as it happens
     * @param value eg: 5 
     */
     //% block="view pulse on LEDs for $value seconds"
     //% value.min=1 value.max=15
-    //% blockGap=6
     //% group='1: Core Blocks'
-    //% advanced=true
     export function viewPulseFor(value: number) {
         let time = input.runningTime()
         while (input.runningTime() <= time + 1000 * value) {
             led.plotBarGraph(
-                pins.analogReadPin(AnalogPin.P0),
+                pins.analogReadPin(inputPin),
                 1023
             )
             basic.pause(100)
@@ -87,25 +106,72 @@ namespace dotPulse {
     }
 
     /**
-    * a measure of sensitivity when looking at the pulse
-    * @param value eg: 15
+    * gets Beats Per Minute, with readings in 5 seconds
+    * @param value eg: 512
     */
-    //% block="set input pin to $pin | sensitivity to $value "
+    //% block="BPM with threshold $value"
+    //% value.min=0 value.max=1023
     //% group='1: Core Blocks'
-    //% value.min=0 value.max=50
-    //% pin.fieldEditor="gridpicker" pin.fieldOptions.columns=5 pin.defl=AnalogPin.P1
-    //% weight=100
-    export function setPinNumber(pin: AnalogPin, value: number) {
-        triggerOffset = 50 - value
-        inputPin = pin
+    export function BPMthreshold(value: number) {
+        let spikeCount = 0
+        let totalInterval = 0
+        let previousSample = 1023
+        let startTime = input.runningTime()
+        let previousSpike = startTime
+        while (let newTime = input.runningTime() <= startTime + 5000) {
+            let newSample: number = pins.analogReadPin(inputPin)
+            if (previousSample < value && newSample >= value) {
+                if (spikeCount > 0) {
+                    totalInterval = totalInterval + newTime - previousSpike
+                }
+                spikeCount = spikeCount + 1
+                previousSpike = newTime
+            }
+            previousSample = newSample
+            basic.pause(50)
+        }
+        return Math.round(60 * (spikeCount-1) / totalInterval)
     }
 
     /**
-     * gets Beats Per Minute, which we calculate as we go along
+    * implements a leaky BPM computation, with readings in 5 seconds
+    * @param value eg: 80
+    */
+    //% block="BPM with decaying factor $value"
+    //% value.min=0 value.max=100
+    //% group='1: Core Blocks'
+    export function BPMleaky(value: number) {
+        let peakCount = 0
+        let totalInterval = 0
+        let previousSample = 1023
+        let previousSample2 = 1023
+        let startTime = input.runningTime()
+        let previousPeak = startTime
+        while (let newTime = input.runningTime() <= startTime + 5000) {
+            let newSample: number = pins.analogReadPin(inputPin)
+            newSample = (previousSample * value + newSample * (100-value)) / 100
+            if (previousSample2 < previousSample && previousSample < newSample) {
+                if (peakCount > 0) {
+                    totalInterval = totalInterval + newTime - previousPeak
+                }
+                peakCount = peakCount + 1
+                previousPeak = newTime
+            }
+            previousSample2 = previousSample
+            previousSample = newSample
+            basic.pause(50)
+        }
+        return Math.round(60 * (peakCount-1) / totalInterval)
+    }
+
+
+    /**
+     * (Original) gets Beats Per Minute, which we calculate as we go along
      */
-    //% block="BPM"
+    //% block="BPM (original)"
     //% blockGap=6
     //% group='1: Core Blocks'
+    //% advanced=true
     export function getBPM() {
         for (let i = 0; i < getSampleLength() / getSampleInterval(); i++) {
             readNextSample()
