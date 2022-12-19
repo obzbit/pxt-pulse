@@ -1,14 +1,16 @@
 {
-    "name": "pulse",
+    "name": "pxt-pulse",
     "version": "0.0.2",
-    "description": "Simple pulse calculation functions for the micro:bit, to be used with the Pulse Sensor.",
+    "description": "Pulse calculation functions for micro:bit, to be used with the Pulse Sensor.",
     "license": "MIT",
     "dependencies": {
         "core": "*"
     },
     "files": [
         "README.md",
-        "pulse.ts",
+        "pulse.ts"
+    ],
+    "testFiles": [
         "test.ts"
     ],
     "public": true,
