@@ -9,3 +9,17 @@ This repository can be added as an **extension** in MakeCode.
 * click on **New Project**
 * click on **Extensions** under the gearwheel menu
 * search for **https://github.com/ykmak/pxt-pulse** and import
+
+## Example
+```blocks
+pulseSensor.setPinNumber(AnalogPin.P0)
+pulseSensor.viewPulseFor(10)
+
+input.onButtonPressed(Button.A, function () {
+    basic.showNumber(pulseSensor.BPMthreshold(512))
+})
+
+input.onButtonPressed(Button.B, function () {
+    basic.showNumber(pulseSensor.BPMleaky(80))
+})
+```
