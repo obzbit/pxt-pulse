@@ -1,16 +1,22 @@
 {
     "name": "pulse",
+    "description": "Simple pulse calculation functions for the micro:bit, to be used with the Pulse Sensor.",
     "license": "MIT",
     "dependencies": {
         "core": "*"
     },
-    "description": "Simple pulse calculation functions for the micro:bit, to be used with the Pulse Sensor.",
     "files": [
         "README.md",
-        "pulse.ts"
+        "pulse.ts",
+        "test.ts"
     ],
     "public": true,
+    "targetVersions": {
+        "target": "5.0.12",
+        "targetId": "microbit"
+    },
     "supportedTargets": [
         "microbit"
-    ]
+    ],
+    "preferredEditor": "tsprj"
 }
