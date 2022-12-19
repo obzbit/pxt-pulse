@@ -1,5 +1,6 @@
 {
     "name": "pulse",
+    "version": "0.0.1",
     "description": "Simple pulse calculation functions for the micro:bit, to be used with the Pulse Sensor.",
     "license": "MIT",
     "dependencies": {
