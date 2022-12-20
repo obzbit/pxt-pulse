@@ -16,7 +16,7 @@ pulseSensor.setPinNumber(AnalogPin.P0)
 
 pulseSensor.viewPulseFor(10)
 
-basic.forever(function () {
+input.onButtonPressed(Button.A, function () {
     basic.showNumber(pulseSensor.BPM())
 })
 ```
