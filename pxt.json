@@ -8,7 +8,9 @@
     },
     "files": [
         "README.md",
-        "pulse.ts"
+	    "pulse.ts",
+        "_locales/zh-TW/pxt-pulse-jsdoc-strings.json",
+        "_locales/zh-TW/pxt-pulse-strings.json"
     ],
     "testFiles": [
         "test.ts"
@@ -18,8 +20,5 @@
         "target": "5.0.12",
         "targetId": "microbit"
     },
-    "supportedTargets": [
-        "microbit"
-    ],
     "preferredEditor": "tsprj"
 }
