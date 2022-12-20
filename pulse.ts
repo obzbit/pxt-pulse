@@ -20,7 +20,6 @@ namespace pulseSensor {
     }
 	
     /**
-    * view pulse on LEDs as it happens
     * @param value eg: 10 
     */
     //% block="view pulse on LEDs for $value seconds"
