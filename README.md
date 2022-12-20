@@ -13,13 +13,10 @@ This repository can be added as an **extension** in MakeCode.
 ## Example
 ```blocks
 pulseSensor.setPinNumber(AnalogPin.P0)
+
 pulseSensor.viewPulseFor(10)
 
-input.onButtonPressed(Button.A, function () {
-    basic.showNumber(pulseSensor.BPMthreshold(512))
-})
-
-input.onButtonPressed(Button.B, function () {
-    basic.showNumber(pulseSensor.BPMleaky(80))
+basic.forever(function () {
+    basic.showNumber(pulseSensor.BPM())
 })
 ```
