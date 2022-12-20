@@ -46,11 +46,20 @@ namespace pulseSensor {
 
     /**
     * gets Beats Per Minute, with readings in 5 seconds
+    */
+    //% block="beats per minute (BPM)"
+    //% weight=50
+    export function BPM(): number {
+        return BPMthreshold(512)
+    }
+
+    /**
+    * computes BPM using a cutoff value, with readings in 5 seconds
     * @param value eg: 512
     */
     //% block="BPM with threshold $value"
     //% value.min=0 value.max=1023
-    //% weight=50
+    //% advanced=true
     export function BPMthreshold(value: number = 512) : number {
         let spikeCount = 0
         let totalInterval = 0
@@ -73,7 +82,7 @@ namespace pulseSensor {
             newTime = input.runningTime()
         }
         basic.pause(100)
-	return Math.max(0, Math.round(60000 * (spikeCount-1) / totalInterval))
+	    return Math.max(0, Math.round(60000 * (spikeCount-1) / totalInterval))
     }
 
     /**
@@ -82,7 +91,7 @@ namespace pulseSensor {
     */
     //% block="BPM with decaying factor $value"
     //% value.min=0 value.max=100
-    //% weight=40
+    //% advanced=true
     export function BPMleaky(value: number = 80) : number {
         let peakCount = 0
         let totalInterval = 0
@@ -108,7 +117,7 @@ namespace pulseSensor {
             newTime = input.runningTime()
         }
         basic.pause(100)
-	return Math.max(0, Math.round(60000 * (peakCount-1) / totalInterval))
+	    return Math.max(0, Math.round(60000 * (peakCount-1) / totalInterval))
     }
 
 
