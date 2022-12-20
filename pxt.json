@@ -1,6 +1,6 @@
 {
     "name": "pxt-pulse",
-    "version": "0.0.2",
+    "version": "0.0.5",
     "description": "Pulse calculation functions for micro:bit, to be used with the Pulse Sensor.",
     "license": "MIT",
     "dependencies": {
@@ -8,7 +8,7 @@
     },
     "files": [
         "README.md",
-	    "pulse.ts",
+        "pulse.ts",
         "_locales/zh-TW/pxt-pulse-jsdoc-strings.json",
         "_locales/zh-TW/pxt-pulse-strings.json"
     ],
@@ -20,5 +20,8 @@
         "target": "5.0.12",
         "targetId": "microbit"
     },
+    "supportedTargets": [
+        "microbit"
+    ],
     "preferredEditor": "tsprj"
 }
