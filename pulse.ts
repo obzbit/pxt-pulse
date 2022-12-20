@@ -1,5 +1,4 @@
 /**
-sampleLengthMS
  * This code is created for the Pulse Sensor Amped open platform and based on the code they kindly made available
  */
 
