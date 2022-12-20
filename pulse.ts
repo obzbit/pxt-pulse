@@ -20,7 +20,7 @@ namespace pulseSensor {
     }
 	
     /**
-    * @param value eg: 10 
+    * @param value time in seconds, eg: 10 
     */
     //% block="view pulse on LEDs for $value seconds"
     //% value.min=1 value.max=20
@@ -44,7 +44,7 @@ namespace pulseSensor {
     }
 
     /**
-    * gets Beats Per Minute, with readings in 5 seconds
+    * Computes BPM with readings in 5 seconds
     */
     //% block="beats per minute (BPM)"
     //% weight=50
@@ -53,8 +53,8 @@ namespace pulseSensor {
     }
 
     /**
-    * computes BPM using a cutoff value, with readings in 5 seconds
-    * @param value eg: 512
+    * Computes BPM using a cutoff value, with readings in 5 seconds
+    * @param value threshold, eg: 512
     */
     //% block="BPM with threshold $value"
     //% value.min=0 value.max=1023
@@ -85,8 +85,8 @@ namespace pulseSensor {
     }
 
     /**
-    * implements a leaky BPM computation, with readings in 5 seconds
-    * @param value eg: 80
+    * Implements a leaky BPM computation, with readings in 5 seconds
+    * @param value decaying factor, eg: 80
     */
     //% block="BPM with decaying factor $value"
     //% value.min=0 value.max=100
