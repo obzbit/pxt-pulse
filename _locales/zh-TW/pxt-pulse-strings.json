@@ -1,0 +1,9 @@
+{
+  "pulseSensor.BPMleaky|block": "BPM with decaying factor $value",
+  "pulseSensor.BPMthreshold|block": "BPM with threshold $value",
+  "pulseSensor.BPM|block": "每分鐘心率（BPM）",
+  "pulseSensor.setPinNumber|block": "感測器使用引腳%pin",
+  "pulseSensor.viewPulseFor|block": "觀察心跳%value|秒",
+  "pulseSensor|block": "心率",
+  "{id:category}PulseSensor": "心率感測器"
+}

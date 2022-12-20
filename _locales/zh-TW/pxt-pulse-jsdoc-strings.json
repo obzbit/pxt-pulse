@@ -1,0 +1,9 @@
+{
+  "pulseSensor": "利用「心率感測器」讀取每分鐘心率（BPM）",
+  "pulseSensor.BPM": "計算心率，約需5秒",
+  "pulseSensor.BPMleaky": "Implements a leaky BPM computation, with readings in 5 seconds",
+  "pulseSensor.BPMleaky|param|value": "decaying factor, eg: 80",
+  "pulseSensor.BPMthreshold": "Computes BPM using a cutoff value, with readings in 5 seconds",
+  "pulseSensor.BPMthreshold|param|value": "threshold, eg: 512",
+  "pulseSensor.viewPulseFor|param|value": "time in seconds, eg: 10 "
+}
