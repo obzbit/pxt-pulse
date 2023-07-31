@@ -1,3 +1,5 @@
+# pxt-pulse
+
 Pulse Counting functions for micro:bit
 
 The pulsesensor.com 'amped' board is open source hardware from World Famous Electronics llc at https://pulsesensor.com/.
@@ -8,7 +10,7 @@ This repository can be added as an **extension** in MakeCode.
 * open [https://makecode.microbit.org/](https://makecode.microbit.org/)
 * click on **New Project**
 * click on **Extensions** under the gearwheel menu
-* search for **https://github.com/ykmak/pxt-pulse** and import
+* search for **https://github.com/obzbit/pxt-pulse** and import
 
 ## Example
 ```blocks
