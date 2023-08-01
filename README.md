@@ -13,9 +13,11 @@ This repository can be added as an **extension** in MakeCode.
 * search for **https://github.com/obzbit/pxt-pulse** and import
 
 ## Example
+
+![](microbit-screenshot.png)  
+
 ```blocks
 pulseSensor.setPinNumber(AnalogPin.P0)
-
 pulseSensor.viewPulseFor(10)
 
 input.onButtonPressed(Button.A, function () {
